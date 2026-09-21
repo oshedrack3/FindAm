@@ -23,6 +23,14 @@ export async function handleServiceRequest(
   }
   if (
     request.method === "POST" &&
+    pathname === "/admin/services/import-manual"
+  ) {
+    return await manualImportServiceRoute(
+      request
+    );
+  }
+  if (
+    request.method === "POST" &&
     pathname === "/admin/services/import"
   ) {
     return await importServiceRoute(
@@ -291,6 +299,117 @@ async function importServiceRoute(
   }
 }
 
+async function manualImportServiceRoute(
+  request
+) {
+  try {
+    const body =
+      await request.json();
+
+    const sourceUrl =
+      body.source_url;
+
+    const content =
+      body.content;
+
+    if (!sourceUrl) {
+      return Response.json({
+        success: false,
+        error: "Source URL is required"
+      }, {
+        status: 400
+      });
+    }
+
+    if (!content) {
+      return Response.json({
+        success: false,
+        error: "Page content is required"
+      }, {
+        status: 400
+      });
+    }
+
+    let url;
+
+    try {
+      url = new URL(sourceUrl);
+    } catch {
+      return Response.json({
+        success: false,
+        error: "Invalid source URL"
+      }, {
+        status: 400
+      });
+    }
+
+    if (
+      url.protocol !== "http:" &&
+      url.protocol !== "https:"
+    ) {
+      return Response.json({
+        success: false,
+        error:
+          "Only HTTP and HTTPS URLs are allowed"
+      }, {
+        status: 400
+      });
+    }
+
+    const cleanContent =
+      content
+        .replace(/\r/g, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+    const lines =
+      cleanContent
+        .split("\n")
+        .map(line =>
+          line.trim()
+        )
+        .filter(Boolean);
+
+    const title =
+      lines[0] || null;
+
+    const headings =
+      lines
+        .slice(0, 20);
+
+    const description =
+      lines
+        .slice(1, 4)
+        .join(" ");
+
+    const draft =
+      createServiceDraft(
+        sourceUrl,
+        {
+          title,
+          description,
+          headings,
+          links: []
+        }
+      );
+
+    return Response.json({
+      success: true,
+      draft
+    });
+
+  } catch (error) {
+    return Response.json({
+      success: false,
+      error:
+        error.message ||
+        "Unable to analyze copied page content"
+    }, {
+      status: 500
+    });
+  }
+}
+
 
 function createServiceDraft(
   sourceUrl,
@@ -307,33 +426,64 @@ function createServiceDraft(
     .slice(0, 3)
     .join(". ");
   
+  const cleanText = text =>
+    text
+    .replace(/&amp;/g, "&")
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+  
+  const uniqueHeadings = [
+    ...new Set(
+      page.headings
+      .map(cleanText)
+      .filter(Boolean)
+    )
+  ];
+  
   const keywords = [
       name,
-      ...page.headings
+      ...uniqueHeadings
     ]
+    .map(cleanText)
+    .filter(Boolean)
+    .filter(
+      (value, index, array) =>
+      array.indexOf(value) === index
+    )
     .join(", ");
   
-  const links =
-    page.links
-    .filter(link =>
-      link.title &&
-      link.url
-    )
-    .map(link => ({
-      title: link.title,
-      url: link.url,
-      type: "information",
-      is_official: 1
-    }));
+  const links = [
+    ...new Map(
+      page.links
+      .filter(link =>
+        link.title &&
+        link.url
+      )
+      .map(link => [
+        link.url,
+        {
+          title: cleanText(link.title),
+          url: link.url,
+          type: "information",
+          is_official: 1
+        }
+      ])
+    ).values()
+  ];
   
   return {
-    name,
-    short_description: description || null,
+    name: cleanText(name),
+    short_description: cleanText(description) || null,
     keywords,
     source_url: sourceUrl,
     links
   };
 }
+
 
 async function createServiceRoute(
   request,
@@ -341,7 +491,7 @@ async function createServiceRoute(
 ) {
   const body =
     await request.json();
-
+  
   const {
     name,
     category_id,
@@ -352,7 +502,7 @@ async function createServiceRoute(
     verified_at,
     links = []
   } = body;
-
+  
   if (
     !name ||
     !category_id ||
@@ -360,48 +510,42 @@ async function createServiceRoute(
   ) {
     return Response.json({
       success: false,
-      error:
-        "Name, category, and source URL are required"
+      error: "Name, category, and source URL are required"
     }, {
       status: 400
     });
   }
-
+  
   const serviceId =
     crypto.randomUUID();
-
+  
   const slug =
     name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  
   await createService(
     env.DB,
     {
       id: serviceId,
       categoryId: category_id,
-      organizationId:
-        organization_id || null,
+      organizationId: organization_id || null,
       name,
       slug,
-      shortDescription:
-        short_description || null,
-      keywords:
-        keywords || null,
+      shortDescription: short_description || null,
+      keywords: keywords || null,
       sourceUrl: source_url,
-      verifiedAt:
-        verified_at ||
+      verifiedAt: verified_at ||
         new Date().toISOString(),
       links
     }
   );
-
+  
   return Response.json({
     success: true,
-    message:
-      "Service created successfully",
+    message: "Service created successfully",
     service_id: serviceId
   }, {
     status: 201

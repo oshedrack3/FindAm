@@ -1,6 +1,7 @@
 import {
   getServices,
-  getService
+  getService,
+  createService
 } from "../storage.js";
 
 export async function handleServiceRequest(
@@ -11,6 +12,24 @@ export async function handleServiceRequest(
   
   const pathname =
     url.pathname.replace(/\/+$/, "") || "/";
+  if (
+    request.method === "POST" &&
+    pathname === "/admin/services"
+  ) {
+    return await createServiceRoute(
+      request,
+      env
+    );
+  }
+  if (
+    request.method === "POST" &&
+    pathname === "/admin/services/import"
+  ) {
+    return await importServiceRoute(
+      request,
+      env
+    );
+  }
   
   if (
     request.method === "GET" &&
@@ -104,4 +123,287 @@ async function getServiceRoute(
 }
 
 
-// End
+
+async function importServiceRoute(
+  request,
+  env
+) {
+  const body =
+    await request.json();
+  
+  const sourceUrl =
+    body.source_url;
+  
+  if (!sourceUrl) {
+    return Response.json({
+      success: false,
+      error: "Source URL is required"
+    }, {
+      status: 400
+    });
+  }
+  
+  let url;
+  
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    return Response.json({
+      success: false,
+      error: "Invalid source URL"
+    }, {
+      status: 400
+    });
+  }
+  
+  if (
+    url.protocol !== "http:" &&
+    url.protocol !== "https:"
+  ) {
+    return Response.json({
+      success: false,
+      error: "Only HTTP and HTTPS URLs are allowed"
+    }, {
+      status: 400
+    });
+  }
+  
+  try {
+    const response =
+      await fetch(sourceUrl, {
+        headers: {
+          "User-Agent": "FindAm Service Importer"
+        }
+      });
+    
+    if (!response.ok) {
+      return Response.json({
+        success: false,
+        error: `Unable to fetch source page. Status: ${response.status}`
+      }, {
+        status: 400
+      });
+    }
+    
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "";
+    
+    if (
+      !contentType.includes("text/html")
+    ) {
+      return Response.json({
+        success: false,
+        error: "The source URL does not contain an HTML webpage."
+      }, {
+        status: 400
+      });
+    }
+    
+    const html =
+      await response.text();
+    
+    const title =
+      html.match(
+        /<title[^>]*>([\s\S]*?)<\/title>/i
+      )?.[1]
+      ?.replace(/\s+/g, " ")
+      ?.trim() || null;
+    
+    const description =
+      html.match(
+        /<meta[^>]+(?:name=["']description["'][^>]+content=["']([^"']*)["']|content=["']([^"']*)["'][^>]+name=["']description["'])/i
+      )?.[1] ||
+      html.match(
+        /<meta[^>]+(?:name=["']description["'][^>]+content=["']([^"']*)["']|content=["']([^"']*)["'][^>]+name=["']description["'])/i
+      )?.[2] ||
+      null;
+    
+    const headings = [
+        ...html.matchAll(
+          /<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi
+        )
+      ]
+      .map(match =>
+        match[1]
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+      )
+      .filter(Boolean)
+      .slice(0, 20);
+    
+    const links = [
+        ...html.matchAll(
+          /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi
+        )
+      ]
+      .map(match => {
+        const text =
+          match[2]
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        
+        try {
+          return {
+            title: text,
+            url: new URL(
+              match[1],
+              sourceUrl
+            ).href
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter(link =>
+        link &&
+        link.title
+      )
+      .slice(0, 50);
+    
+    const draft =
+      createServiceDraft(
+        sourceUrl,
+        {
+          title,
+          description,
+          headings,
+          links
+        }
+      );
+    
+    return Response.json({
+      success: true,
+      draft
+    });
+    
+  } catch (error) {
+    return Response.json({
+      success: false,
+      error: error.message ||
+        "Unable to analyze source page"
+    }, {
+      status: 500
+    });
+  }
+}
+
+
+function createServiceDraft(
+  sourceUrl,
+  page
+) {
+  const name =
+    page.title ||
+    page.headings[0] ||
+    "Untitled Service";
+  
+  const description =
+    page.description ||
+    page.headings
+    .slice(0, 3)
+    .join(". ");
+  
+  const keywords = [
+      name,
+      ...page.headings
+    ]
+    .join(", ");
+  
+  const links =
+    page.links
+    .filter(link =>
+      link.title &&
+      link.url
+    )
+    .map(link => ({
+      title: link.title,
+      url: link.url,
+      type: "information",
+      is_official: 1
+    }));
+  
+  return {
+    name,
+    short_description: description || null,
+    keywords,
+    source_url: sourceUrl,
+    links
+  };
+}
+
+async function createServiceRoute(
+  request,
+  env
+) {
+  const body =
+    await request.json();
+
+  const {
+    name,
+    category_id,
+    organization_id,
+    short_description,
+    keywords,
+    source_url,
+    verified_at,
+    links = []
+  } = body;
+
+  if (
+    !name ||
+    !category_id ||
+    !source_url
+  ) {
+    return Response.json({
+      success: false,
+      error:
+        "Name, category, and source URL are required"
+    }, {
+      status: 400
+    });
+  }
+
+  const serviceId =
+    crypto.randomUUID();
+
+  const slug =
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  await createService(
+    env.DB,
+    {
+      id: serviceId,
+      categoryId: category_id,
+      organizationId:
+        organization_id || null,
+      name,
+      slug,
+      shortDescription:
+        short_description || null,
+      keywords:
+        keywords || null,
+      sourceUrl: source_url,
+      verifiedAt:
+        verified_at ||
+        new Date().toISOString(),
+      links
+    }
+  );
+
+  return Response.json({
+    success: true,
+    message:
+      "Service created successfully",
+    service_id: serviceId
+  }, {
+    status: 201
+  });
+}

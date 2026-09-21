@@ -1,0 +1,8 @@
+name = "findam-backend"
+main = "index.js"
+compatibility_date = "2026-09-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "findam"
+database_id = "2236c90c-97ff-444d-96bf-938efe823fb4"

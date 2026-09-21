@@ -15,7 +15,6 @@ export async function getServices(
       s.slug,
       s.short_description,
       s.keywords,
-      s.verified_at,
       c.name AS category_name,
       o.name AS organization_name
     FROM services s
@@ -29,10 +28,7 @@ export async function getServices(
   const params = [];
   
   if (categoryId) {
-    query += `
-      AND s.category_id = ?
-    `;
-    
+    query += ` AND s.category_id = ?`;
     params.push(categoryId);
   }
   
@@ -46,26 +42,13 @@ export async function getServices(
     `;
     
     const value = `%${search}%`;
-    
-    params.push(
-      value,
-      value,
-      value
-    );
+    params.push(value, value, value);
   }
   
-  query += `
-    ORDER BY s.name
-    LIMIT ?
-  `;
-  
+  query += ` ORDER BY s.name LIMIT ?`;
   params.push(limit);
   
-  const result =
-    await db
-    .prepare(query)
-    .bind(...params)
-    .all();
+  const result = await db.prepare(query).bind(...params).all();
   
   return result.results;
 }
@@ -74,58 +57,32 @@ export async function getService(
   db,
   serviceId
 ) {
-  const service =
-    await db
+  const service = await db
     .prepare(`
-        SELECT
-          s.id,
-          s.category_id,
-          s.organization_id,
-          s.name,
-          s.slug,
-          s.short_description,
-          s.keywords,
-          s.verified_at,
-          s.source_url,
-          c.name AS category_name,
-          o.name AS organization_name,
-          o.website_url AS organization_website
-        FROM services s
-        LEFT JOIN categories c
-          ON c.id = s.category_id
-        LEFT JOIN organizations o
-          ON o.id = s.organization_id
-        WHERE s.id = ?
-          AND s.status = 1
-        LIMIT 1
-      `)
+      SELECT
+        s.id,
+        s.category_id,
+        s.organization_id,
+        s.name,
+        s.slug,
+        s.short_description,
+        s.keywords,
+        c.name AS category_name,
+        o.name AS organization_name,
+        o.website_url AS organization_website
+      FROM services s
+      LEFT JOIN categories c
+        ON c.id = s.category_id
+      LEFT JOIN organizations o
+        ON o.id = s.organization_id
+      WHERE s.id = ?
+        AND s.status = 1
+      LIMIT 1
+    `)
     .bind(serviceId)
     .first();
   
-  if (!service) {
-    return null;
-  }
-  
-  const links =
-    await db
-    .prepare(`
-        SELECT
-          id,
-          title,
-          url,
-          type,
-          is_official
-        FROM service_links
-        WHERE service_id = ?
-          AND status = 1
-        ORDER BY is_official DESC, title
-      `)
-    .bind(serviceId)
-    .all();
-  
-  service.links = links.results;
-  
-  return service;
+  return service || null;
 }
 
 export async function createService(
@@ -137,10 +94,7 @@ export async function createService(
     name,
     slug,
     shortDescription = null,
-    keywords = null,
-    sourceUrl,
-    verifiedAt,
-    links = []
+    keywords = null
   }
 ) {
   await db
@@ -152,11 +106,9 @@ export async function createService(
         name,
         slug,
         short_description,
-        keywords,
-        source_url,
-        verified_at
+        keywords
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       id,
@@ -165,45 +117,29 @@ export async function createService(
       name,
       slug,
       shortDescription,
-      keywords,
-      sourceUrl,
-      verifiedAt
+      keywords
     )
     .run();
   
-  for (const link of links) {
-    if (
-      !link.title ||
-      !link.url
-    ) {
-      continue;
-    }
-    
-    await db
-      .prepare(`
-        INSERT INTO service_links (
-          id,
-          service_id,
-          title,
-          url,
-          type,
-          is_official
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        crypto.randomUUID(),
-        id,
-        link.title,
-        link.url,
-        link.type ||
-        "information",
-        link.is_official ?
-        1 :
-        0
-      )
-      .run();
-  }
-  
   return id;
+}
+
+export async function getCategories(
+  db
+) {
+  const result = await db
+    .prepare(`
+      SELECT
+        id,
+        name,
+        slug,
+        description,
+        icon
+      FROM categories
+      WHERE status = 1
+      ORDER BY name
+    `)
+    .all();
+  
+  return result.results;
 }

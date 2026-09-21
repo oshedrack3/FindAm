@@ -86,6 +86,7 @@ export async function getService(
           s.short_description,
           s.keywords,
           s.verified_at,
+          s.source_url,
           c.name AS category_name,
           o.name AS organization_name,
           o.website_url AS organization_website

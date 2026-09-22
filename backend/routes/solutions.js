@@ -1,4 +1,4 @@
-import * as storage from "../storage/index.js";
+import * as storage from "../storage.js";
 
 export async function handleSolutionRequest(request, env) {
   const url = new URL(request.url);

@@ -1,0 +1,15 @@
+{
+  "name": "findam-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.127.0"
+  }
+}

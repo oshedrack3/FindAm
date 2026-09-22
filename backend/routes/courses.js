@@ -1,40 +1,102 @@
 import * as storage from "../storage.js";
+import {
+  authenticate
+} from "../middleware.js";
 
 export async function handleCourseRequest(request, env) {
   const url = new URL(request.url);
   const pathname =
     url.pathname.replace(/\/+$/, "") || "/";
-
   if (
     request.method === "POST" &&
     pathname === "/admin/courses"
   ) {
+    const auth =
+      await authenticate(
+        request,
+        env
+      );
+    if (!auth.success) {
+      return Response.json({
+        success: false,
+        message: auth.message
+      }, {
+        status: auth.status
+      });
+    }
+    if (auth.user.role !== "admin") {
+      return Response.json({
+        success: false,
+        message: "Admin access required."
+      }, {
+        status: 403
+      });
+    }
     return await createCourseRoute(
       request,
       env
     );
   }
-
   if (
     request.method === "POST" &&
     pathname === "/admin/course-requirements"
   ) {
+    const auth =
+      await authenticate(
+        request,
+        env
+      );
+    if (!auth.success) {
+      return Response.json({
+        success: false,
+        message: auth.message
+      }, {
+        status: auth.status
+      });
+    }
+    if (auth.user.role !== "admin") {
+      return Response.json({
+        success: false,
+        message: "Admin access required."
+      }, {
+        status: 403
+      });
+    }
     return await createCourseRequirementsRoute(
       request,
       env
     );
   }
-
   if (
     request.method === "POST" &&
     pathname === "/admin/school-course-requirements"
   ) {
+    const auth =
+      await authenticate(
+        request,
+        env
+      );
+    if (!auth.success) {
+      return Response.json({
+        success: false,
+        message: auth.message
+      }, {
+        status: auth.status
+      });
+    }
+    if (auth.user.role !== "admin") {
+      return Response.json({
+        success: false,
+        message: "Admin access required."
+      }, {
+        status: 403
+      });
+    }
     return await createSchoolCourseRequirementsRoute(
       request,
       env
     );
   }
-
   if (
     request.method === "GET" &&
     pathname === "/courses"
@@ -44,39 +106,34 @@ export async function handleCourseRequest(request, env) {
       env
     );
   }
-
   if (
     request.method === "GET" &&
     /^\/courses\/[^/]+$/.test(pathname)
   ) {
     const courseId =
       pathname.split("/")[2];
-
     return await getCourseRoute(
       env,
       courseId
     );
   }
-
   if (
     request.method === "GET" &&
     /^\/courses\/[^/]+\/schools\/[^/]+$/.test(pathname)
   ) {
     const parts =
       pathname.split("/");
-
     const courseId = parts[2];
     const schoolId = parts[4];
-
     return await getSchoolCourseRoute(
       env,
       schoolId,
       courseId
     );
   }
-
   return null;
 }
+
 
 async function getCoursesRoute(
   url,

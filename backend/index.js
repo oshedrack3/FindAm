@@ -1,6 +1,6 @@
 import {
-  handleServiceRequest
-} from "./routes/services.js";
+  handleSolutionRequest
+} from "./routes/solutions.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,16 +52,15 @@ export default {
         });
       }
 
-      const serviceResponse =
-        await handleServiceRequest(
+      const solutionResponse =
+        await handleSolutionRequest(
           request,
-          env,
-          pathname
+          env
         );
 
-      if (serviceResponse) {
+      if (solutionResponse) {
         return addCors(
-          serviceResponse
+          solutionResponse
         );
       }
 

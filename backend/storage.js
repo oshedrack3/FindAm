@@ -239,7 +239,34 @@ export async function getCourses(
 
   return result.results;
 }
-
+export async function getCoursesByIds(
+  db,
+  courseIds
+) {
+  if (!courseIds.length) {
+    return [];
+  }
+  
+  const placeholders =
+    courseIds.map(() => "?").join(", ");
+  
+  const result = await db
+    .prepare(`
+      SELECT
+        id,
+        name,
+        slug,
+        description
+      FROM courses
+      WHERE id IN (${placeholders})
+        AND status = 1
+      ORDER BY id
+    `)
+    .bind(...courseIds)
+    .all();
+  
+  return result.results;
+}
 export async function getCourse(
   db,
   courseId

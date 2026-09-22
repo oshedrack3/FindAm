@@ -1,6 +1,10 @@
 import {
-  handleSolutionRequest
-} from "./routes/solutions.js";
+  handleSchoolRequest
+} from "./routes/schools.js";
+
+import {
+  handleCourseRequest
+} from "./routes/courses.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,15 +56,27 @@ export default {
         });
       }
 
-      const solutionResponse =
-        await handleSolutionRequest(
+      const schoolResponse =
+        await handleSchoolRequest(
           request,
           env
         );
 
-      if (solutionResponse) {
+      if (schoolResponse) {
         return addCors(
-          solutionResponse
+          schoolResponse
+        );
+      }
+
+      const courseResponse =
+        await handleCourseRequest(
+          request,
+          env
+        );
+
+      if (courseResponse) {
+        return addCors(
+          courseResponse
         );
       }
 
@@ -115,5 +131,3 @@ function addCors(response) {
     }
   );
 }
-
-// end

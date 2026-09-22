@@ -1,547 +1,415 @@
-export async function getSolutions(
+export async function getSchools(
   db,
   {
-    categoryId = null,
-    organizationId = null,
     type = null,
+    ownership = null,
+    state = null,
+    city = null,
     search = null,
     limit = 20
   } = {}
 ) {
   let query = `
     SELECT
-      s.id,
-      s.category_id,
-      s.organization_id,
-      s.name,
-      s.slug,
-      s.type,
-      s.short_description,
-      s.keywords,
-      c.name AS category_name,
-      o.name AS organization_name
-    FROM solutions s
-    LEFT JOIN categories c
-      ON c.id = s.category_id
-    LEFT JOIN organizations o
-      ON o.id = s.organization_id
-    WHERE s.status = 1
-  `;
-  
-  const params = [];
-  
-  if (categoryId) {
-    query += ` AND s.category_id = ?`;
-    params.push(categoryId);
-  }
-  
-  if (organizationId) {
-    query += ` AND s.organization_id = ?`;
-    params.push(organizationId);
-  }
-  
-  if (type) {
-    query += ` AND s.type = ?`;
-    params.push(type);
-  }
-  
-  if (search) {
-    query += `
-      AND (
-        s.name LIKE ?
-        OR s.keywords LIKE ?
-        OR s.short_description LIKE ?
-      )
-    `;
-    
-    const value = `%${search}%`;
-    params.push(value, value, value);
-  }
-  
-  query += ` ORDER BY s.name LIMIT ?`;
-  params.push(limit);
-  
-  const result = await db
-    .prepare(query)
-    .bind(...params)
-    .all();
-  
-  return result.results;
-}
-export async function getSolution(
-  db,
-  solutionId
-) {
-  const solution = await db
-    .prepare(`
-      SELECT
-        s.id,
-        s.category_id,
-        s.organization_id,
-        s.name,
-        s.slug,
-        s.type,
-        s.short_description,
-        s.keywords,
-        c.name AS category_name,
-        o.name AS organization_name,
-        o.website_url AS organization_website,
-        o.phone AS organization_phone,
-        o.email AS organization_email
-      FROM solutions s
-      LEFT JOIN categories c
-        ON c.id = s.category_id
-      LEFT JOIN organizations o
-        ON o.id = s.organization_id
-      WHERE s.id = ?
-        AND s.status = 1
-      LIMIT 1
-    `)
-    .bind(solutionId)
-    .first();
-  
-  if (!solution) {
-    return null;
-  }
-  
-  const content = await db
-    .prepare(`
-      SELECT
-        id,
-        content,
-        source_url,
-        verification_status,
-        verified_at,
-        created_at,
-        updated_at
-      FROM solution_contents
-      WHERE solution_id = ?
-      LIMIT 1
-    `)
-    .bind(solutionId)
-    .first();
-  
-  solution.content = content || null;
-  
-  return solution;
-}
-export async function createSolution(
-  db,
-  {
-    id,
-    categoryId = null,
-    organizationId = null,
-    name,
-    slug,
-    type,
-    shortDescription = null,
-    keywords = null,
-    content = null,
-    sourceUrl = null,
-    verificationStatus = "unverified",
-    verifiedAt = null
-  }
-) {
-  await db
-    .prepare(`
-      INSERT INTO solutions (
-        id,
-        category_id,
-        organization_id,
-        name,
-        slug,
-        type,
-        short_description,
-        keywords
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    .bind(
       id,
-      categoryId,
-      organizationId,
       name,
+      short_name,
       slug,
       type,
-      shortDescription,
-      keywords
-    )
-    .run();
-  
-  if (content) {
-    await db
-      .prepare(`
-        INSERT INTO solution_contents (
-          id,
-          solution_id,
-          content,
-          source_url,
-          verification_status,
-          verified_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `)
-      .bind(
-        crypto.randomUUID(),
-        id,
-        content,
-        sourceUrl,
-        verificationStatus,
-        verifiedAt
-      )
-      .run();
-  }
-  
-  return id;
-}
-export async function getCategories(db) {
-  const result = await db
-    .prepare(`
-      SELECT
-        id,
-        name,
-        slug,
-        description,
-        icon
-      FROM categories
-      WHERE status = 1
-      ORDER BY name
-    `)
-    .all();
-  
-  return result.results;
-}
-export async function getOrganizations(
-  db,
-  {
-    search = null,
-    limit = 20
-  } = {}
-) {
-  let query = `
-    SELECT
-      id,
-      name,
-      slug,
+      ownership,
+      state,
+      city,
+      address,
+      latitude,
+      longitude,
+      courses,
       description,
       website_url,
-      phone,
-      email,
-      address
-    FROM organizations
+      logo_url
+    FROM schools
     WHERE status = 1
   `;
-  
+
   const params = [];
-  
+
+  if (type) {
+    query += ` AND type = ?`;
+    params.push(type);
+  }
+
+  if (ownership) {
+    query += ` AND ownership = ?`;
+    params.push(ownership);
+  }
+
+  if (state) {
+    query += ` AND state = ?`;
+    params.push(state);
+  }
+
+  if (city) {
+    query += ` AND city = ?`;
+    params.push(city);
+  }
+
   if (search) {
     query += `
       AND (
         name LIKE ?
-        OR description LIKE ?
+        OR short_name LIKE ?
+        OR city LIKE ?
+        OR state LIKE ?
       )
     `;
-    
+
     const value = `%${search}%`;
-    params.push(value, value);
+    params.push(
+      value,
+      value,
+      value,
+      value
+    );
   }
-  
+
   query += ` ORDER BY name LIMIT ?`;
   params.push(limit);
-  
+
   const result = await db
     .prepare(query)
     .bind(...params)
     .all();
-  
+
+  return result.results.map(
+    school => ({
+      ...school,
+      courses: JSON.parse(
+        school.courses || "{}"
+      )
+    })
+  );
+}
+
+export async function getSchool(
+  db,
+  schoolId
+) {
+  const school = await db
+    .prepare(`
+      SELECT
+        id,
+        name,
+        short_name,
+        slug,
+        type,
+        ownership,
+        state,
+        city,
+        address,
+        latitude,
+        longitude,
+        courses,
+        description,
+        website_url,
+        logo_url
+      FROM schools
+      WHERE id = ?
+        AND status = 1
+      LIMIT 1
+    `)
+    .bind(schoolId)
+    .first();
+
+  if (!school) {
+    return null;
+  }
+
+  school.courses = JSON.parse(
+    school.courses || "{}"
+  );
+
+  return school;
+}
+
+export async function createSchool(
+  db,
+  {
+    id,
+    name,
+    shortName = null,
+    slug,
+    type,
+    ownership,
+    state = null,
+    city = null,
+    address = null,
+    latitude = null,
+    longitude = null,
+    courses = {},
+    description = null,
+    websiteUrl = null,
+    logoUrl = null
+  }
+) {
+  await db
+    .prepare(`
+      INSERT INTO schools (
+        id,
+        name,
+        short_name,
+        slug,
+        type,
+        ownership,
+        state,
+        city,
+        address,
+        latitude,
+        longitude,
+        courses,
+        description,
+        website_url,
+        logo_url
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+    .bind(
+      id,
+      name,
+      shortName,
+      slug,
+      type,
+      ownership,
+      state,
+      city,
+      address,
+      latitude,
+      longitude,
+      JSON.stringify(courses),
+      description,
+      websiteUrl,
+      logoUrl
+    )
+    .run();
+
+  return id;
+}
+
+export async function getCourses(
+  db,
+  {
+    search = null,
+    limit = 20
+  } = {}
+) {
+  let query = `
+    SELECT
+      id,
+      name,
+      slug,
+      description
+    FROM courses
+    WHERE status = 1
+  `;
+
+  const params = [];
+
+  if (search) {
+    query += `
+      AND (
+        name LIKE ?
+        OR slug LIKE ?
+        OR description LIKE ?
+      )
+    `;
+
+    const value = `%${search}%`;
+    params.push(
+      value,
+      value,
+      value
+    );
+  }
+
+  query += ` ORDER BY id LIMIT ?`;
+  params.push(limit);
+
+  const result = await db
+    .prepare(query)
+    .bind(...params)
+    .all();
+
   return result.results;
 }
-export async function getOrganization(
+
+export async function getCourse(
   db,
-  organizationId
+  courseId
 ) {
-  return await db
+  const course = await db
     .prepare(`
       SELECT
         id,
         name,
         slug,
-        description,
-        website_url,
-        phone,
-        email,
-        address
-      FROM organizations
+        description
+      FROM courses
       WHERE id = ?
         AND status = 1
       LIMIT 1
     `)
-    .bind(organizationId)
+    .bind(courseId)
     .first();
-}
-export async function getPlaces(
-  db,
-  {
-    organizationId = null,
-    city = null,
-    state = null,
-    search = null,
-    limit = 20
-  } = {}
-) {
-  let query = `
-    SELECT
-      p.id,
-      p.organization_id,
-      p.name,
-      p.slug,
-      p.description,
-      p.address,
-      p.city,
-      p.state,
-      p.phone,
-      p.email,
-      p.website_url,
-      p.opening_hours,
-      p.latitude,
-      p.longitude,
-      o.name AS organization_name
-    FROM places p
-    LEFT JOIN organizations o
-      ON o.id = p.organization_id
-    WHERE p.status = 1
-  `;
-  
-  const params = [];
-  
-  if (organizationId) {
-    query += ` AND p.organization_id = ?`;
-    params.push(organizationId);
+
+  if (!course) {
+    return null;
   }
-  
-  if (city) {
-    query += ` AND p.city = ?`;
-    params.push(city);
-  }
-  
-  if (state) {
-    query += ` AND p.state = ?`;
-    params.push(state);
-  }
-  
-  if (search) {
-    query += `
-      AND (
-        p.name LIKE ?
-        OR p.address LIKE ?
-        OR p.city LIKE ?
-        OR p.state LIKE ?
-      )
-    `;
-    
-    const value = `%${search}%`;
-    params.push(value, value, value, value);
-  }
-  
-  query += ` ORDER BY p.name LIMIT ?`;
-  params.push(limit);
-  
-  const result = await db
-    .prepare(query)
-    .bind(...params)
-    .all();
-  
-  return result.results;
-}
-export async function getPlace(
-  db,
-  placeId
-) {
-  return await db
+
+  const requirements = await db
     .prepare(`
       SELECT
-        p.id,
-        p.organization_id,
-        p.name,
-        p.slug,
-        p.description,
-        p.address,
-        p.city,
-        p.state,
-        p.phone,
-        p.email,
-        p.website_url,
-        p.opening_hours,
-        p.latitude,
-        p.longitude,
-        o.name AS organization_name,
-        o.website_url AS organization_website
-      FROM places p
-      LEFT JOIN organizations o
-        ON o.id = p.organization_id
-      WHERE p.id = ?
-        AND p.status = 1
+        id,
+        requirements
+      FROM course_requirements
+      WHERE id = ?
       LIMIT 1
     `)
-    .bind(placeId)
+    .bind(courseId)
     .first();
+
+  course.requirements =
+    requirements
+      ? JSON.parse(
+          requirements.requirements || "{}"
+        )
+      : null;
+
+  return course;
 }
-export async function getNeeds(
-  db,
-  {
-    solutionId = null,
-    type = null,
-    search = null,
-    limit = 20
-  } = {}
-) {
-  let query = `
-    SELECT
-      n.id,
-      n.solution_id,
-      n.phrase,
-      n.type,
-      s.name AS solution_name
-    FROM needs n
-    LEFT JOIN solutions s
-      ON s.id = n.solution_id
-    WHERE n.status = 1
-  `;
-  
-  const params = [];
-  
-  if (solutionId) {
-    query += ` AND n.solution_id = ?`;
-    params.push(solutionId);
-  }
-  
-  if (type) {
-    query += ` AND n.type = ?`;
-    params.push(type);
-  }
-  
-  if (search) {
-    query += ` AND n.phrase LIKE ?`;
-    params.push(`%${search}%`);
-  }
-  
-  query += ` ORDER BY n.phrase LIMIT ?`;
-  params.push(limit);
-  
-  const result = await db
-    .prepare(query)
-    .bind(...params)
-    .all();
-  
-  return result.results;
-}
-export async function createNeed(
+
+export async function createCourse(
   db,
   {
     id,
-    solutionId = null,
-    phrase,
-    type = null
+    name,
+    slug,
+    description = null
   }
 ) {
   await db
     .prepare(`
-      INSERT INTO needs (
+      INSERT INTO courses (
         id,
-        solution_id,
-        phrase,
-        type
+        name,
+        slug,
+        description
       )
       VALUES (?, ?, ?, ?)
     `)
     .bind(
       id,
-      solutionId,
-      phrase,
-      type
+      name,
+      slug,
+      description
     )
     .run();
-  
+
   return id;
 }
 
-
-
-
-
-
-
-export async function searchSolutions(
+export async function createCourseRequirements(
   db,
-  search,
-  limit = 20
-) {
-  const value = search
-    .trim()
-    .toLowerCase();
-  
-  if (!value) {
-    return [];
+  {
+    courseId,
+    requirements = {}
   }
-  
-  const searchValue = `%${value}%`;
-  
-  const result = await db
+) {
+  await db
     .prepare(`
-      SELECT
-        s.id,
-        s.category_id,
-        s.organization_id,
-        s.name,
-        s.slug,
-        s.type,
-        s.short_description,
-        s.keywords,
-        c.name AS category_name,
-        o.name AS organization_name
-      FROM solutions s
-      LEFT JOIN categories c
-        ON c.id = s.category_id
-      LEFT JOIN organizations o
-        ON o.id = s.organization_id
-      WHERE s.status = 1
-        AND (
-          LOWER(s.name) LIKE ?
-          OR LOWER(s.keywords) LIKE ?
-          OR LOWER(s.short_description) LIKE ?
-          OR EXISTS (
-            SELECT 1
-            FROM needs n
-            WHERE n.solution_id = s.id
-              AND n.status = 1
-              AND LOWER(n.phrase) LIKE ?
-          )
-          OR LOWER(c.name) LIKE ?
-          OR LOWER(o.name) LIKE ?
-        )
-      ORDER BY
-        CASE
-          WHEN LOWER(s.name) = ? THEN 1
-          WHEN LOWER(s.name) LIKE ? THEN 2
-          WHEN LOWER(s.keywords) LIKE ? THEN 3
-          ELSE 4
-        END,
-        s.name
-      LIMIT ?
+      INSERT INTO course_requirements (
+        id,
+        requirements
+      )
+      VALUES (?, ?)
     `)
     .bind(
-      searchValue,
-      searchValue,
-      searchValue,
-      searchValue,
-      searchValue,
-      searchValue,
-      value,
-      `${value}%`,
-      searchValue,
-      limit
+      courseId,
+      JSON.stringify(requirements)
     )
-    .all();
-  
-  return result.results;
+    .run();
+
+  return courseId;
+}
+
+export async function getSchoolCourseRequirements(
+  db,
+  schoolId,
+  courseId
+) {
+  return await db
+    .prepare(`
+      SELECT
+        school_id,
+        course_id,
+        requirements
+      FROM school_course_requirements
+      WHERE school_id = ?
+        AND course_id = ?
+      LIMIT 1
+    `)
+    .bind(
+      schoolId,
+      courseId
+    )
+    .first();
+}
+
+export async function createSchoolCourseRequirements(
+  db,
+  {
+    schoolId,
+    courseId,
+    requirements = {}
+  }
+) {
+  await db
+    .prepare(`
+      INSERT INTO school_course_requirements (
+        school_id,
+        course_id,
+        requirements
+      )
+      VALUES (?, ?, ?)
+    `)
+    .bind(
+      schoolId,
+      courseId,
+      JSON.stringify(requirements)
+    )
+    .run();
+
+  return {
+    schoolId,
+    courseId
+  };
+}
+
+export async function updateSchoolCourses(
+  db,
+  schoolId,
+  courses
+) {
+  await db
+    .prepare(`
+      UPDATE schools
+      SET
+        courses = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `)
+    .bind(
+      JSON.stringify(courses),
+      schoolId
+    )
+    .run();
+
+  return schoolId;
 }

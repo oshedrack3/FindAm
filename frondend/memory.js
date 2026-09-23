@@ -1210,3 +1210,5 @@ if (courseComparisonBackButton) {
     closeCourseComparisonPage
   );
 }
+
+// end

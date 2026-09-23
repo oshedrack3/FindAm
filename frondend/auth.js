@@ -200,244 +200,141 @@ async function logout() {
   location.reload();
 }
 
+
 function createAuthPage() {
-  const container =
-    document.getElementById("app");
-  if (!container) {
+  const authPage = document.querySelector(".auth-page");
+  
+  if (!authPage) {
     return;
   }
-  container.innerHTML = `
-    <div class="auth-page">
-      <div class="auth-box">
-        <div id="authContent"></div>
-      </div>
-    </div>
-  `;
+  
   showLogin();
 }
+
+
 function showLogin() {
-  const content =
-    document.getElementById("authContent");
-  if (!content) {
+  const loginContent =
+    document.getElementById("loginContent");
+  
+  const registerContent =
+    document.getElementById("registerContent");
+  
+  if (!loginContent || !registerContent) {
     return;
   }
-  content.innerHTML = `
-    <div class="auth-header">
-      <h1>FindAm</h1>
-      <p>Find what you need.</p>
-    </div>
-    <form id="loginForm">
-      <div class="form-group">
-        <label for="loginInput">
-          Username or email
-        </label>
-        <input
-          id="loginInput"
-          type="text"
-          autocomplete="username"
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="loginPassword">
-          Password
-        </label>
-        <input
-          id="loginPassword"
-          type="password"
-          autocomplete="current-password"
-          required
-        >
-      </div>
-      <button type="submit">
-        Login
-      </button>
-    </form>
-    <p class="auth-switch">
-      Don't have an account?
-      <button
-        type="button"
-        id="showRegisterButton"
-      >
-        Create account
-      </button>
-    </p>
-  `;
-  document
-    .getElementById("loginForm")
-    .addEventListener(
-      "submit",
-      handleLogin
-    );
-  document
-    .getElementById("showRegisterButton")
-    .addEventListener(
-      "click",
-      showRegister
-    );
+  
+  loginContent.hidden = false;
+  registerContent.hidden = true;
 }
+
+
 function showRegister() {
-  const content =
-    document.getElementById("authContent");
-  if (!content) {
+  const loginContent =
+    document.getElementById("loginContent");
+  
+  const registerContent =
+    document.getElementById("registerContent");
+  
+  if (!loginContent || !registerContent) {
     return;
   }
-  content.innerHTML = `
-    <div class="auth-header">
-      <h1>Create account</h1>
-      <p>Join FindAm.</p>
-    </div>
-    <form id="registerForm">
-      <div class="form-group">
-        <label for="registerName">
-          Name
-        </label>
-        <input
-          id="registerName"
-          type="text"
-          autocomplete="name"
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="registerUsername">
-          Username
-        </label>
-        <input
-          id="registerUsername"
-          type="text"
-          autocomplete="username"
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="registerEmail">
-          Email
-        </label>
-        <input
-          id="registerEmail"
-          type="email"
-          autocomplete="email"
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="registerPassword">
-          Password
-        </label>
-        <input
-          id="registerPassword"
-          type="password"
-          autocomplete="new-password"
-          required
-        >
-      </div>
-      <button type="submit">
-        Create account
-      </button>
-    </form>
-    <p class="auth-switch">
-      Already have an account?
-      <button
-        type="button"
-        id="showLoginButton"
-      >
-        Login
-      </button>
-    </p>
-  `;
-  document
-    .getElementById("registerForm")
-    .addEventListener(
-      "submit",
-      handleRegister
-    );
-  document
-    .getElementById("showLoginButton")
-    .addEventListener(
-      "click",
-      showLogin
-    );
+  
+  loginContent.hidden = true;
+  registerContent.hidden = false;
 }
+
+
 async function handleLogin(event) {
   event.preventDefault();
+  
   const loginValue =
-    document
-      .getElementById("loginInput")
-      .value
-      .trim();
+    document.getElementById("loginInput").value.trim();
+  
   const password =
-    document
-      .getElementById("loginPassword")
-      .value;
+    document.getElementById("loginPassword").value;
+  
   if (!loginValue || !password) {
-    showAlert(
-      "Please fill in all fields."
-    );
+    showAlert("Please fill in all fields.");
     return;
   }
-  const user =
-    await login(
-      loginValue,
-      password
-    );
+  
+  const user = await login(
+    loginValue,
+    password
+  );
+  
   if (!user) {
     return;
   }
+  
   location.reload();
 }
+
+
 async function handleRegister(event) {
   event.preventDefault();
+  
   const name =
-    document
-      .getElementById("registerName")
-      .value
-      .trim();
+    document.getElementById("registerName").value.trim();
+  
   const username =
-    document
-      .getElementById("registerUsername")
-      .value
-      .trim();
+    document.getElementById("registerUsername").value.trim();
+  
   const email =
-    document
-      .getElementById("registerEmail")
-      .value
-      .trim();
+    document.getElementById("registerEmail").value.trim();
+  
   const password =
-    document
-      .getElementById("registerPassword")
-      .value;
-  if (
-    !name ||
-    !username ||
-    !email ||
-    !password
-  ) {
-    showAlert(
-      "Please fill in all fields."
-    );
+    document.getElementById("registerPassword").value;
+  
+  if (!name || !username || !email || !password) {
+    showAlert("Please fill in all fields.");
     return;
   }
-  const success =
-    await register(
-      name,
-      username,
-      email,
-      password
-    );
+  
+  const success = await register(
+    name,
+    username,
+    email,
+    password
+  );
+  
   if (!success) {
     return;
   }
+  
   showLogin();
+  
   const loginInput =
-    document.getElementById(
-      "loginInput"
-    );
+    document.getElementById("loginInput");
+  
   if (loginInput) {
-    loginInput.value =
-      username;
+    loginInput.value = username;
   }
 }
+
+
+function handleAuth() {
+  createAuthPage();
+}
+
+
+document
+  .getElementById("loginForm")
+  ?.addEventListener("submit", handleLogin);
+
+document
+  .getElementById("registerForm")
+  ?.addEventListener("submit", handleRegister);
+
+document
+  .getElementById("showRegisterButton")
+  ?.addEventListener("click", showRegister);
+
+document
+  .getElementById("showLoginButton")
+  ?.addEventListener("click", showLogin);
+
+
 
 
 document.addEventListener(

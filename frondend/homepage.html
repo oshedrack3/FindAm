@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>FindAm</title>
+  <link rel="stylesheet" href="UI.css">
+  <link rel="stylesheet" href="card.css">
+  <link rel="stylesheet" href="modal.css">
+</head>
+
+<body>
+  <header id="appHeader" class="app-header">
+    <div class="header-content">
+      <div class="brand">
+        <div class="findam-logo">
+          <div class="findam-bird">
+            <div class="bird-head"></div>
+            <div class="bird-body"></div>
+            <div class="bird-wing"></div>
+            <div class="bird-tail"></div>
+            
+            
+          </div>
+        </div>
+        <div class="brand-text">
+          <p>FindAm</p>
+        </div>
+      </div>
+      <button id="menuButton" class="menu-button" type="button">
+        ☰
+      </button>
+    </div>
+  </header>
+  <main id="app">
+    <section id="homePage" class="page">
+            <section id="schoolComparisonEntry" class="content-section">
+  <button
+    id="openSchoolComparisonButton"
+    class="comparison-entry"
+    type="button"
+  >
+    <div class="comparison-entry-icon">
+      ⇄
+    </div>
+
+    <div class="comparison-entry-content">
+      <h2>Compare Schools</h2>
+      <p>
+        Compare schools, courses, fees and other details side by side.
+      </p>
+    </div>
+
+    <div class="comparison-entry-arrow">
+      →
+    </div>
+  </button>
+</section>
+<section id="courseComparisonEntry" class="content-section">
+  <button
+    id="openCourseComparisonButton"
+    class="comparison-entry"
+    type="button"
+  >
+    <div class="comparison-entry-icon">
+      ⇄
+    </div>
+
+    <div class="comparison-entry-content">
+      <h2>Compare Courses</h2>
+      <p>
+        Compare courses based on current work market trends and career opportunities.
+      </p>
+    </div>
+
+    <div class="comparison-entry-arrow">
+      →
+    </div>
+  </button>
+</section>
+      <section class="search-section">
+        <div class="search-intro">
+          <h1>Find a school</h1>
+          <p>
+            Search for schools across Nigeria.
+          </p>
+        </div>
+        <div class="search-box">
+          <input type="search" id="schoolSearchInput" placeholder="Search school name" autocomplete="off">
+          <button id="schoolSearchButton" type="button">
+            Search
+          </button>
+        </div>
+        <div class="search-suggestions">
+          <button type="button" class="search-suggestion" data-search="University">
+            Universities
+          </button>
+          <button type="button" class="search-suggestion" data-search="Polytechnic">
+            Polytechnics
+          </button>
+          <button type="button" class="search-suggestion" data-search="College">
+            Colleges
+          </button>
+        </div>
+      </section>
+      <section id="courseSearchSection" class="content-section">
+        <div class="section-header">
+          <h2>Find schools by course</h2>
+        </div>
+        <div class="search-box">
+          <input type="search" id="courseSearchInput" placeholder="e.g. Microbiology" autocomplete="off">
+          <button id="courseSearchButton" type="button">
+            Search
+          </button>
+        </div>
+      </section>
+
+      <section id="popularSchoolsSection" class="content-section">
+        <div class="section-header">
+          <h2>Popular Schools </h2>
+        </div>
+        <div id="schoolList" class="school-list">
+          <div class="school-loading">
+            Loading...
+          </div>
+        </div>
+      </section>
+      <section id="searchResultsSection" class="content-section" style="display:none">
+        <div class="section-header">
+          <button id="backToHomeButton" type="button">
+            ← Back
+          </button>
+          <h2 id="searchResultsTitle">
+            Search Results
+          </h2>
+        </div>
+        <div id="searchResults" class="school-list"></div>
+      </section>
+    </section>
+    <section id="schoolPage" class="page" style="display:none">
+      <div class="service-page-header">
+        <button id="schoolBackButton" type="button">
+          ← Back
+        </button>
+      </div>
+      <div id="schoolContent" class="service-content">
+        <div class="school-loading">
+          Loading...
+        </div>
+      </div>
+    </section>
+    <section id="coursePage" class="page" style="display:none">
+      <div class="service-page-header">
+        <button id="courseBackButton" type="button">
+          ← Back
+        </button>
+      </div>
+      <div id="courseContent" class="service-content">
+        <div class="school-loading">
+          Loading...
+        </div>
+      </div>
+    </section>
+    
+    <section id="schoolComparisonPage" class="page" style="display:none">
+      <div class="service-page-header">
+        <button id="schoolComparisonBackButton" type="button">
+          ← Back
+        </button>
+        <h2>Compare Schools</h2>
+      </div>
+      
+      <div id="schoolComparisonContent" class="service-content">
+        <div class="school-comparison">
+          <div class="school-comparison-header">
+            <h1>Compare Schools</h1>
+            <p>
+              Compare schools side by side to see their differences.
+            </p>
+          </div>
+          
+          <div id="schoolComparisonSelector" class="school-comparison-selector">
+            <div class="school-comparison-field">
+              <label for="comparisonSchoolSearch">
+                Select schools
+              </label>
+              
+              <input type="search" id="comparisonSchoolSearch" placeholder="Search for a school" autocomplete="off">
+            </div>
+            
+            <div id="comparisonSchoolResults" class="school-comparison-results"></div>
+            
+            <div id="selectedSchools" class="selected-schools"></div>
+          </div>
+          
+          <button id="compareSchoolsButton" type="button" disabled>
+            Compare Schools
+          </button>
+          
+          <div id="schoolComparisonResult" class="school-comparison-result"></div>
+        </div>
+      </div>
+    </section>
+    
+    <section
+  id="courseComparisonPage"
+  class="page"
+  style="display:none"
+>
+  <div class="service-page-header">
+    <button
+      id="courseComparisonBackButton"
+      type="button"
+    >
+      ← Back
+    </button>
+  </div>
+
+  <div class="course-comparison-page">
+    <div class="course-comparison-intro">
+      <h1>Compare Courses</h1>
+
+      <p>
+        Select courses to compare their details,
+        requirements and career information side by side.
+      </p>
+    </div>
+
+    <div class="course-comparison-selector">
+      <div class="course-comparison-search">
+        <input
+          type="search"
+          id="comparisonCourseSearch"
+          placeholder="Search for a course"
+          autocomplete="off"
+        >
+      </div>
+
+      <div
+        id="comparisonCourseResults"
+        class="course-comparison-results"
+      ></div>
+    </div>
+
+    <div
+      id="selectedCourses"
+      class="selected-courses"
+    ></div>
+
+    <button
+      id="compareCoursesButton"
+      class="compare-courses-button"
+      type="button"
+      disabled
+    >
+      Compare Courses
+    </button>
+
+    <div
+      id="courseComparisonResult"
+      class="course-comparison-result"
+    ></div>
+  </div>
+</section>
+  </main>
+  
+  
+  
+  
+  
+  
+  <nav id="bottomNav" class="bottom-nav">
+    <button id="homeNavButton" class="nav-button active" type="button">
+      <span class="nav-icon">⌂</span>
+      <span>Home</span>
+    </button>
+    <button id="schoolsNavButton" class="nav-button" type="button">
+      <span class="nav-icon">🎓</span>
+      <span>Schools</span>
+    </button>
+  </nav>
+  <div id="loader" class="loader" style="display:none">
+    <div class="loader-bird">
+      <div class="findam-bird">
+        <div class="bird-head"></div>
+        <div class="bird-body"></div>
+        <div class="bird-wing"></div>
+        <div class="bird-tail"></div>
+      </div>
+    </div>
+  </div>
+  <div id="confirmModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <p id="confirmText">
+        Are you sure?
+      </p>
+      <div style="margin-top:15px;">
+        <button id="confirmYesBtn" onclick="confirmYes()">
+          Yes
+        </button>
+        <button id="confirmNoBtn" onclick="confirmNo()">
+          No
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
+  
+  <div id="sideMenu" class="side-menu">
+    <div id="menuHeader" class="menu-header"></div>
+  </div>
+  
+  <div id="authPage" class="auth-page" style="display:none">
+    
+    <div class="auth-box">
+      <button class="auth-close" onclick="closeAuthPage()" aria-label="Close">
+        ×
+      </button>
+      <div class="auth-header">
+        <div class="brand auth-brand">
+          <div class="findam-logo">
+            <div class="findam-bird">
+              <div class="bird-head"></div>
+              <div class="bird-body"></div>
+              <div class="bird-wing"></div>
+              <div class="bird-tail"></div>
+            </div>
+          </div>
+          
+          <div class="brand-text">
+            <p>FindAm</p>
+          </div>
+        </div>
+      </div>
+      <div id="loginContent">
+        <form id="loginForm">
+          
+          <div class="form-group">
+            <label for="loginInput">
+              Username or email
+            </label>
+            
+            <input id="loginInput" type="text" autocomplete="username" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="loginPassword">
+              Password
+            </label>
+            
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+          </div>
+          
+          <button type="submit">
+            Login
+          </button>
+          
+        </form>
+        
+        <p class="auth-switch">
+          Don't have an account?
+          <button type="button" id="showRegisterButton">
+            Create account
+          </button>
+        </p>
+      </div>
+      
+      <div id="registerContent" hidden>
+        <div class="auth-subheader">
+          <h2>Create account</h2>
+          <p>Create FindAm for personalize Experience</p>
+        </div>
+        
+        <form id="registerForm">
+          
+          <div class="form-group">
+            <label for="registerName">
+              Name
+            </label>
+            
+            <input id="registerName" type="text" autocomplete="name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registerUsername">
+              Username
+            </label>
+            
+            <input id="registerUsername" type="text" autocomplete="username" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registerEmail">
+              Email
+            </label>
+            
+            <input id="registerEmail" type="email" autocomplete="email" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="registerPassword">
+              Password
+            </label>
+            
+            <input id="registerPassword" type="password" autocomplete="new-password" required>
+          </div>
+          
+          <button type="submit">
+            Create account
+          </button>
+          
+        </form>
+        
+        <p class="auth-switch">
+          Already have an account?
+          <button type="button" id="showLoginButton">
+            Login
+          </button>
+        </p>
+      </div>
+      
+    </div>
+  </div>
+  
+  
+  <script src="memory.js"></script>
+  <script src="core.js"></script>
+  <script src="api.js"></script>
+  <script src="navigation.js"></script>
+  <script src="render.js"></script>
+  <script src="modal.js"></script>
+  <script src="auth.js"></script>
+</body>
+
+</html>

@@ -258,7 +258,7 @@ async function getSchoolCoursesRoute(
       env.DB,
       schoolId
     );
-
+  
   if (!school) {
     return Response.json({
       success: false,
@@ -267,31 +267,15 @@ async function getSchoolCoursesRoute(
       status: 404
     });
   }
-
-  const courseIds =
-    Object.keys(
-      school.courses || {}
-    );
-
+  
   const courses =
-    await storage.getCoursesByIds(
+    await storage.getSchoolCourses(
       env.DB,
-      courseIds
+      schoolId
     );
-
-  const schoolCourses =
-    courses.map(
-      course => ({
-        ...course,
-        fee:
-          school.courses[
-            String(course.id)
-          ]
-      })
-    );
-
+  
   return Response.json({
     success: true,
-    courses: schoolCourses
+    courses
   });
 }

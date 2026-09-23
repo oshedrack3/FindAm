@@ -249,6 +249,7 @@ async function createSchoolRoute(
     status: 201
   });
 }
+
 async function getSchoolCoursesRoute(
   env,
   schoolId

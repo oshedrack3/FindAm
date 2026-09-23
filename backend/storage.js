@@ -24,7 +24,8 @@ export async function getSchools(
       longitude,
       description,
       website_url,
-      logo_url
+      logo_url,
+      established_year
     FROM schools
     WHERE status = 1
   `;
@@ -102,7 +103,8 @@ export async function getSchool(
         longitude,
         description,
         website_url,
-        logo_url
+        logo_url,
+        established_year
       FROM schools
       WHERE id = ?
         AND status = 1
@@ -130,7 +132,8 @@ export async function createSchool(
     longitude = null,
     description = null,
     websiteUrl = null,
-    logoUrl = null
+    logoUrl = null,
+    establishedYear = null
   }
 ) {
   await db
@@ -149,7 +152,8 @@ export async function createSchool(
         longitude,
         description,
         website_url,
-        logo_url
+        logo_url,
+        established_year
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
@@ -167,12 +171,104 @@ export async function createSchool(
       longitude,
       description,
       websiteUrl,
-      logoUrl
+      logoUrl,
+      establishedYear
     )
     .run();
   
   return id;
 }
+
+export async function updateSchool(
+  db,
+  {
+    id,
+    name,
+    shortName = null,
+    slug,
+    type,
+    ownership,
+    state = null,
+    city = null,
+    address = null,
+    latitude = null,
+    longitude = null,
+    description = null,
+    websiteUrl = null,
+    logoUrl = null,
+    establishedYear = null
+  }
+) {
+  await db
+    .prepare(`
+      UPDATE schools
+      SET
+        name = ?,
+        short_name = ?,
+        slug = ?,
+        type = ?,
+        ownership = ?,
+        state = ?,
+        city = ?,
+        address = ?,
+        latitude = ?,
+        longitude = ?,
+        description = ?,
+        website_url = ?,
+        logo_url = ?,
+        established_year = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `)
+    .bind(
+      name,
+      shortName,
+      slug,
+      type,
+      ownership,
+      state,
+      city,
+      address,
+      latitude,
+      longitude,
+      description,
+      websiteUrl,
+      logoUrl,
+      establishedYear,
+      id
+    )
+    .run();
+  
+  return id;
+}
+
+export async function createSchoolCourse(
+  db,
+  {
+    schoolId,
+    courseId
+  }
+) {
+  await db
+    .prepare(`
+      INSERT INTO school_courses (
+        school_id,
+        course_id
+      )
+      VALUES (?, ?)
+    `)
+    .bind(
+      schoolId,
+      courseId
+    )
+    .run();
+  
+  return {
+    schoolId,
+    courseId
+  };
+}
+
 
 export async function getCourses(
   db,

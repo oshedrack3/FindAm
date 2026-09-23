@@ -16,6 +16,23 @@ export async function handleSchoolRequest(request, env) {
   }
   
   if (
+  request.method === "GET" &&
+  /^\/schools\/[^/]+\/courses\/[^/]+\/fees$/.test(pathname)
+) {
+  const parts =
+    pathname.split("/");
+  
+  const schoolId = parts[2];
+  const courseId = parts[4];
+  
+  return await getSchoolCourseFeesRoute(
+    env,
+    schoolId,
+    courseId
+  );
+}
+  
+  if (
     request.method === "GET" &&
     pathname === "/schools"
   ) {
@@ -278,5 +295,69 @@ async function getSchoolCoursesRoute(
   return Response.json({
     success: true,
     courses
+  });
+}
+
+async function getSchoolCourseFeesRoute(
+  env,
+  schoolId,
+  courseId
+) {
+  const school =
+    await storage.getSchool(
+      env.DB,
+      schoolId
+    );
+  
+  if (!school) {
+    return Response.json({
+      success: false,
+      error: "School not found"
+    }, {
+      status: 404
+    });
+  }
+  
+  const course =
+    await storage.getCourse(
+      env.DB,
+      courseId
+    );
+  
+  if (!course) {
+    return Response.json({
+      success: false,
+      error: "Course not found"
+    }, {
+      status: 404
+    });
+  }
+  
+  const schoolCourse =
+    await storage.getSchoolCourse(
+      env.DB,
+      schoolId,
+      courseId
+    );
+  
+  if (!schoolCourse) {
+    return Response.json({
+      success: false,
+      error: "Course is not offered by this school"
+    }, {
+      status: 404
+    });
+  }
+  
+  const fees =
+    await storage.getSchoolCourseFees(
+      env.DB,
+      schoolId,
+      courseId
+    );
+  
+  return Response.json({
+    success: true,
+    fees
   });
 }

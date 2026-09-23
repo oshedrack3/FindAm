@@ -411,11 +411,10 @@ export async function getSchoolCourses(
         c.name,
         c.slug,
         c.description,
-        sc.fee,
         sc.status
       FROM school_courses sc
       JOIN courses c
-        ON c.id = sc.course_id
+        ON CAST(c.id AS TEXT) = sc.course_id
       WHERE sc.school_id = ?
         AND sc.status = 1
         AND c.status = 1
@@ -437,7 +436,6 @@ export async function getSchoolCourse(
       SELECT
         school_id,
         course_id,
-        fee,
         status
       FROM school_courses
       WHERE school_id = ?
@@ -474,7 +472,6 @@ export async function getSchoolsByCourse(
         s.description,
         s.website_url,
         s.logo_url,
-        sc.fee,
         sc.status
       FROM school_courses sc
       JOIN schools s
@@ -488,6 +485,39 @@ export async function getSchoolsByCourse(
     .bind(
       courseId,
       limit
+    )
+    .all();
+  
+  return result.results;
+}
+
+export async function getSchoolCourseFees(
+  db,
+  schoolId,
+  courseId
+) {
+  const result = await db
+    .prepare(`
+      SELECT
+        id,
+        school_id,
+        course_id,
+        academic_session,
+        level,
+        student_category,
+        fee_type,
+        amount,
+        source_url,
+        verified_at
+      FROM school_course_fees
+      WHERE school_id = ?
+        AND course_id = ?
+        AND status = 1
+      ORDER BY academic_session DESC, level
+    `)
+    .bind(
+      schoolId,
+      courseId
     )
     .all();
   

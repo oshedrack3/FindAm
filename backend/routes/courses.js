@@ -24,7 +24,10 @@ export async function handleCourseRequest(request, env) {
         status: auth.status
       });
     }
-    if (auth.user.role !== "admin") {
+    if (
+      auth.user.role !== "admin" &&
+      auth.user.role !== "owner"
+    ) {
       return Response.json({
         success: false,
         message: "Admin access required."
@@ -54,7 +57,11 @@ export async function handleCourseRequest(request, env) {
         status: auth.status
       });
     }
-    if (auth.user.role !== "admin") {
+    if (
+      auth.user.role !== "admin" &&
+      auth.user.role !== "owner"
+    ) {
+      
       return Response.json({
         success: false,
         message: "Admin access required."
@@ -84,7 +91,10 @@ export async function handleCourseRequest(request, env) {
         status: auth.status
       });
     }
-    if (auth.user.role !== "admin") {
+    if (
+      auth.user.role !== "admin" &&
+      auth.user.role !== "owner"
+    ) {
       return Response.json({
         success: false,
         message: "Admin access required."
@@ -95,6 +105,19 @@ export async function handleCourseRequest(request, env) {
     return await createSchoolCourseRequirementsRoute(
       request,
       env
+    );
+  }
+  if (
+    request.method === "GET" &&
+    /^\/courses\/[^/]+\/schools$/.test(pathname)
+  ) {
+    const courseId =
+      pathname.split("/")[2];
+    
+    return await getCourseSchoolsRoute(
+      url,
+      env,
+      courseId
     );
   }
   if (
@@ -141,14 +164,14 @@ async function getCoursesRoute(
 ) {
   const search =
     url.searchParams.get("search");
-
+  
   const limit = Math.min(
     Number(
       url.searchParams.get("limit")
     ) || 20,
     50
   );
-
+  
   const courses =
     await storage.getCourses(
       env.DB,
@@ -157,7 +180,7 @@ async function getCoursesRoute(
         limit
       }
     );
-
+  
   return Response.json({
     success: true,
     courses
@@ -173,7 +196,7 @@ async function getCourseRoute(
       env.DB,
       courseId
     );
-
+  
   if (!course) {
     return Response.json({
       success: false,
@@ -182,7 +205,7 @@ async function getCourseRoute(
       status: 404
     });
   }
-
+  
   return Response.json({
     success: true,
     course
@@ -199,7 +222,7 @@ async function getSchoolCourseRoute(
       env.DB,
       schoolId
     );
-
+  
   if (!school) {
     return Response.json({
       success: false,
@@ -208,13 +231,13 @@ async function getSchoolCourseRoute(
       status: 404
     });
   }
-
+  
   const course =
     await storage.getCourse(
       env.DB,
       courseId
     );
-
+  
   if (!course) {
     return Response.json({
       success: false,
@@ -223,32 +246,35 @@ async function getSchoolCourseRoute(
       status: 404
     });
   }
-
-  const fee =
-    school.courses?.[courseId];
-
-  if (fee === undefined) {
+  
+  const schoolCourse =
+    await storage.getSchoolCourse(
+      env.DB,
+      schoolId,
+      courseId
+    );
+  
+  if (!schoolCourse) {
     return Response.json({
       success: false,
-      error:
-        "Course is not offered by this school"
+      error: "Course is not offered by this school"
     }, {
       status: 404
     });
   }
-
+  
   const schoolRequirements =
     await storage.getSchoolCourseRequirements(
       env.DB,
       schoolId,
       courseId
     );
-
+  
   return Response.json({
     success: true,
     course: {
       ...course,
-      fee,
+      fee: schoolCourse.fee,
       school_id: schoolId,
       school_requirements:
         schoolRequirements
@@ -267,26 +293,25 @@ async function createCourseRoute(
 ) {
   const body =
     await request.json();
-
+  
   const {
     id,
     name,
     description
   } = body;
-
+  
   if (
     id === undefined ||
     !name
   ) {
     return Response.json({
       success: false,
-      error:
-        "Course ID and name are required"
+      error: "Course ID and name are required"
     }, {
       status: 400
     });
   }
-
+  
   const slug = name
     .toLowerCase()
     .trim()
@@ -298,81 +323,21 @@ async function createCourseRoute(
       /^-+|-+$/g,
       ""
     );
-
+  
   await storage.createCourse(
     env.DB,
     {
       id,
       name,
       slug,
-      description:
-        description || null
+      description: description || null
     }
   );
-
+  
   return Response.json({
     success: true,
-    message:
-      "Course created successfully",
+    message: "Course created successfully",
     course_id: id
-  }, {
-    status: 201
-  });
-}
-
-async function createCourseRequirementsRoute(
-  request,
-  env
-) {
-  const body =
-    await request.json();
-
-  const {
-    course_id,
-    requirements
-  } = body;
-
-  if (
-    course_id === undefined ||
-    requirements === undefined
-  ) {
-    return Response.json({
-      success: false,
-      error:
-        "Course ID and requirements are required"
-    }, {
-      status: 400
-    });
-  }
-
-  const course =
-    await storage.getCourse(
-      env.DB,
-      course_id
-    );
-
-  if (!course) {
-    return Response.json({
-      success: false,
-      error: "Course not found"
-    }, {
-      status: 404
-    });
-  }
-
-  await storage.createCourseRequirements(
-    env.DB,
-    {
-      courseId: course_id,
-      requirements
-    }
-  );
-
-  return Response.json({
-    success: true,
-    message:
-      "Course requirements created successfully",
-    course_id
   }, {
     status: 201
   });
@@ -384,13 +349,13 @@ async function createSchoolCourseRequirementsRoute(
 ) {
   const body =
     await request.json();
-
+  
   const {
     school_id,
     course_id,
     requirements
   } = body;
-
+  
   if (
     !school_id ||
     course_id === undefined ||
@@ -398,19 +363,18 @@ async function createSchoolCourseRequirementsRoute(
   ) {
     return Response.json({
       success: false,
-      error:
-        "School ID, course ID and requirements are required"
+      error: "School ID, course ID and requirements are required"
     }, {
       status: 400
     });
   }
-
+  
   const school =
     await storage.getSchool(
       env.DB,
       school_id
     );
-
+  
   if (!school) {
     return Response.json({
       success: false,
@@ -419,13 +383,13 @@ async function createSchoolCourseRequirementsRoute(
       status: 404
     });
   }
-
+  
   const course =
     await storage.getCourse(
       env.DB,
       course_id
     );
-
+  
   if (!course) {
     return Response.json({
       success: false,
@@ -434,20 +398,23 @@ async function createSchoolCourseRequirementsRoute(
       status: 404
     });
   }
-
-  if (
-    school.courses?.[course_id] ===
-    undefined
-  ) {
+  
+  const schoolCourse =
+    await storage.getSchoolCourse(
+      env.DB,
+      school_id,
+      course_id
+    );
+  
+  if (!schoolCourse) {
     return Response.json({
       success: false,
-      error:
-        "Course is not offered by this school"
+      error: "Course is not offered by this school"
     }, {
       status: 400
     });
   }
-
+  
   await storage.createSchoolCourseRequirements(
     env.DB,
     {
@@ -456,14 +423,140 @@ async function createSchoolCourseRequirementsRoute(
       requirements
     }
   );
-
+  
   return Response.json({
     success: true,
-    message:
-      "School course requirements created successfully",
+    message: "School course requirements created successfully",
     school_id,
     course_id
   }, {
     status: 201
+  });
+}
+async function createSchoolCourseRequirementsRoute(
+  request,
+  env
+) {
+  const body =
+    await request.json();
+  
+  const {
+    school_id,
+    course_id,
+    requirements
+  } = body;
+  
+  if (
+    !school_id ||
+    course_id === undefined ||
+    requirements === undefined
+  ) {
+    return Response.json({
+      success: false,
+      error: "School ID, course ID and requirements are required"
+    }, {
+      status: 400
+    });
+  }
+  
+  const school =
+    await storage.getSchool(
+      env.DB,
+      school_id
+    );
+  
+  if (!school) {
+    return Response.json({
+      success: false,
+      error: "School not found"
+    }, {
+      status: 404
+    });
+  }
+  
+  const course =
+    await storage.getCourse(
+      env.DB,
+      course_id
+    );
+  
+  if (!course) {
+    return Response.json({
+      success: false,
+      error: "Course not found"
+    }, {
+      status: 404
+    });
+  }
+  
+  if (
+    school.courses?.[course_id] ===
+    undefined
+  ) {
+    return Response.json({
+      success: false,
+      error: "Course is not offered by this school"
+    }, {
+      status: 400
+    });
+  }
+  
+  await storage.createSchoolCourseRequirements(
+    env.DB,
+    {
+      schoolId: school_id,
+      courseId: course_id,
+      requirements
+    }
+  );
+  
+  return Response.json({
+    success: true,
+    message: "School course requirements created successfully",
+    school_id,
+    course_id
+  }, {
+    status: 201
+  });
+}
+
+async function getCourseSchoolsRoute(
+  url,
+  env,
+  courseId
+) {
+  const course =
+    await storage.getCourse(
+      env.DB,
+      courseId
+    );
+  
+  if (!course) {
+    return Response.json({
+      success: false,
+      error: "Course not found"
+    }, {
+      status: 404
+    });
+  }
+  
+  const limit = Math.min(
+    Number(
+      url.searchParams.get("limit")
+    ) || 20,
+    50
+  );
+  
+  const schools =
+    await storage.getSchoolsByCourse(
+      env.DB,
+      courseId,
+      limit
+    );
+  
+  return Response.json({
+    success: true,
+    course,
+    schools
   });
 }

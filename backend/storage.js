@@ -22,36 +22,35 @@ export async function getSchools(
       address,
       latitude,
       longitude,
-      courses,
       description,
       website_url,
       logo_url
     FROM schools
     WHERE status = 1
   `;
-
+  
   const params = [];
-
+  
   if (type) {
     query += ` AND type = ?`;
     params.push(type);
   }
-
+  
   if (ownership) {
     query += ` AND ownership = ?`;
     params.push(ownership);
   }
-
+  
   if (state) {
     query += ` AND state = ?`;
     params.push(state);
   }
-
+  
   if (city) {
     query += ` AND city = ?`;
     params.push(city);
   }
-
+  
   if (search) {
     query += `
       AND (
@@ -61,8 +60,9 @@ export async function getSchools(
         OR state LIKE ?
       )
     `;
-
+    
     const value = `%${search}%`;
+    
     params.push(
       value,
       value,
@@ -70,23 +70,16 @@ export async function getSchools(
       value
     );
   }
-
+  
   query += ` ORDER BY name LIMIT ?`;
   params.push(limit);
-
+  
   const result = await db
     .prepare(query)
     .bind(...params)
     .all();
-
-  return result.results.map(
-    school => ({
-      ...school,
-      courses: JSON.parse(
-        school.courses || "{}"
-      )
-    })
-  );
+  
+  return result.results;
 }
 
 export async function getSchool(
@@ -107,7 +100,6 @@ export async function getSchool(
         address,
         latitude,
         longitude,
-        courses,
         description,
         website_url,
         logo_url
@@ -118,16 +110,8 @@ export async function getSchool(
     `)
     .bind(schoolId)
     .first();
-
-  if (!school) {
-    return null;
-  }
-
-  school.courses = JSON.parse(
-    school.courses || "{}"
-  );
-
-  return school;
+  
+  return school || null;
 }
 
 export async function createSchool(
@@ -144,7 +128,6 @@ export async function createSchool(
     address = null,
     latitude = null,
     longitude = null,
-    courses = {},
     description = null,
     websiteUrl = null,
     logoUrl = null
@@ -164,7 +147,6 @@ export async function createSchool(
         address,
         latitude,
         longitude,
-        courses,
         description,
         website_url,
         logo_url
@@ -183,13 +165,12 @@ export async function createSchool(
       address,
       latitude,
       longitude,
-      JSON.stringify(courses),
       description,
       websiteUrl,
       logoUrl
     )
     .run();
-
+  
   return id;
 }
 
@@ -419,24 +400,96 @@ export async function createSchoolCourseRequirements(
   };
 }
 
-export async function updateSchoolCourses(
+export async function getSchoolCourses(
+  db,
+  schoolId
+) {
+  const result = await db
+    .prepare(`
+      SELECT
+        c.id,
+        c.name,
+        c.slug,
+        c.description,
+        sc.fee,
+        sc.status
+      FROM school_courses sc
+      JOIN courses c
+        ON c.id = sc.course_id
+      WHERE sc.school_id = ?
+        AND sc.status = 1
+        AND c.status = 1
+      ORDER BY c.name
+    `)
+    .bind(schoolId)
+    .all();
+  
+  return result.results;
+}
+
+export async function getSchoolCourse(
   db,
   schoolId,
-  courses
+  courseId
 ) {
-  await db
+  return await db
     .prepare(`
-      UPDATE schools
-      SET
-        courses = ?,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      SELECT
+        school_id,
+        course_id,
+        fee,
+        status
+      FROM school_courses
+      WHERE school_id = ?
+        AND course_id = ?
+        AND status = 1
+      LIMIT 1
     `)
     .bind(
-      JSON.stringify(courses),
-      schoolId
+      schoolId,
+      courseId
     )
-    .run();
+    .first();
+}
 
-  return schoolId;
+export async function getSchoolsByCourse(
+  db,
+  courseId,
+  limit = 20
+) {
+  const result = await db
+    .prepare(`
+      SELECT
+        s.id,
+        s.name,
+        s.short_name,
+        s.slug,
+        s.type,
+        s.ownership,
+        s.state,
+        s.city,
+        s.address,
+        s.latitude,
+        s.longitude,
+        s.description,
+        s.website_url,
+        s.logo_url,
+        sc.fee,
+        sc.status
+      FROM school_courses sc
+      JOIN schools s
+        ON s.id = sc.school_id
+      WHERE sc.course_id = ?
+        AND sc.status = 1
+        AND s.status = 1
+      ORDER BY s.name
+      LIMIT ?
+    `)
+    .bind(
+      courseId,
+      limit
+    )
+    .all();
+  
+  return result.results;
 }

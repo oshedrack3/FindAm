@@ -188,7 +188,6 @@ async function createSchoolRoute(
     address,
     latitude,
     longitude,
-    courses,
     description,
     website_url,
     logo_url
@@ -236,7 +235,6 @@ async function createSchoolRoute(
       address: address || null,
       latitude: latitude || null,
       longitude: longitude || null,
-      courses: courses || {},
       description: description || null,
       websiteUrl: website_url || null,
       logoUrl: logo_url || null
@@ -251,7 +249,6 @@ async function createSchoolRoute(
     status: 201
   });
 }
-
 async function getSchoolCoursesRoute(
   env,
   schoolId

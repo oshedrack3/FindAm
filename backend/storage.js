@@ -25,7 +25,8 @@ export async function getSchools(
       description,
       website_url,
       logo_url,
-      established_year
+      established_year,
+      featured
     FROM schools
     WHERE status = 1
   `;
@@ -104,7 +105,8 @@ export async function getSchool(
         description,
         website_url,
         logo_url,
-        established_year
+        established_year,
+        featured,
       FROM schools
       WHERE id = ?
         AND status = 1
@@ -133,7 +135,8 @@ export async function createSchool(
     description = null,
     websiteUrl = null,
     logoUrl = null,
-    establishedYear = null
+    establishedYear = null,
+    featured = 0
   }
 ) {
   await db
@@ -153,7 +156,8 @@ export async function createSchool(
         description,
         website_url,
         logo_url,
-        established_year
+        established_year,
+        featured
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
@@ -172,7 +176,8 @@ export async function createSchool(
       description,
       websiteUrl,
       logoUrl,
-      establishedYear
+      establishedYear,
+      featured
     )
     .run();
   
@@ -196,7 +201,8 @@ export async function updateSchool(
     description = null,
     websiteUrl = null,
     logoUrl = null,
-    establishedYear = null
+    establishedYear = null,
+    featured = 0
   }
 ) {
   await db
@@ -217,6 +223,7 @@ export async function updateSchool(
         website_url = ?,
         logo_url = ?,
         established_year = ?,
+        featured = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `)
@@ -235,6 +242,7 @@ export async function updateSchool(
       websiteUrl,
       logoUrl,
       establishedYear,
+      featured,
       id
     )
     .run();

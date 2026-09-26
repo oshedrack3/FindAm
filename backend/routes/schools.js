@@ -1,5 +1,4 @@
 import * as storage from "../storage.js";
-import { authenticate } from "../middleware.js";
 
 export async function handleSchoolRequest(request, env) {
   const url = new URL(request.url);
@@ -60,7 +59,14 @@ export async function handleSchoolRequest(request, env) {
       courseId
     );
   }
-
+  if (
+  request.method === "GET" &&
+  pathname === "/schools/featured"
+) {
+  return await getFeaturedSchoolsRoute(
+    env
+  );
+}
   if (
     request.method === "GET" &&
     pathname === "/schools"
@@ -647,3 +653,17 @@ async function getSchoolCourseFeesRoute(
   });
 }
 
+
+async function getFeaturedSchoolsRoute(
+  env
+) {
+  const schools =
+    await storage.getFeaturedSchools(
+      env.DB
+    );
+  
+  return Response.json({
+    success: true,
+    schools
+  });
+}

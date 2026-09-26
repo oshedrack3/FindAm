@@ -655,11 +655,20 @@ async function getSchoolCourseFeesRoute(
 
 
 async function getFeaturedSchoolsRoute(
+  url,
   env
 ) {
+  const limit = Math.min(
+    Number(
+      url.searchParams.get("limit")
+    ) || 10,
+    50
+  );
+  
   const schools =
     await storage.getFeaturedSchools(
-      env.DB
+      env.DB,
+      limit
     );
   
   return Response.json({

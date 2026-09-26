@@ -83,6 +83,40 @@ export async function getSchools(
   
   return result.results;
 }
+export async function getFeaturedSchools(
+  db,
+  limit = 10
+) {
+  const result =
+    await db
+    .prepare(`
+        SELECT
+          id,
+          name,
+          short_name,
+          slug,
+          type,
+          ownership,
+          state,
+          city,
+          address,
+          latitude,
+          longitude,
+          description,
+          website_url,
+          logo_url,
+          established_year
+        FROM schools
+        WHERE status = 1
+          AND featured = 1
+        ORDER BY name
+        LIMIT ?
+      `)
+    .bind(limit)
+    .all();
+  
+  return result.results;
+}
 
 export async function getSchool(
   db,
@@ -106,7 +140,7 @@ export async function getSchool(
         website_url,
         logo_url,
         established_year,
-        featured,
+        featured
       FROM schools
       WHERE id = ?
         AND status = 1

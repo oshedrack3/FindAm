@@ -650,3 +650,5 @@ async function getFeaturedSchoolsRoute(
     schools
   });
 }
+
+// end
